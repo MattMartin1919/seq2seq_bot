@@ -1,2 +1,5 @@
+# remove node modules
 node_modules/
-dist/
+# remove dist folder
+dist/*
+!.gitkeep
