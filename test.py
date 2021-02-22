@@ -64,11 +64,11 @@ class chatbot(object):
             target_text_len += 1
 
             if sample_word != '<SOS>' and sample_word != '<EOS>':
-                    target_text += ' ' + sample_word
-            
+                target_text += ' ' + sample_word
+
             if sample_word == '<EOS>' or target_text_len >= self.max_decoder_seq_length:
-                terminated = True 
-            
+                terminated = True
+
             target_text = re.sub("i 'm", "I'm", target_text)
             target_text = re.sub("he 's", "he's", target_text)
             target_text = re.sub("do n't", "don't", target_text)
@@ -76,7 +76,7 @@ class chatbot(object):
             target_text = re.sub("(\s?)+'", "'", target_text)
             target_text = re.sub("i ", "I ", target_text)
             target_text = re.sub("(\s?)+,", ",", target_text)
-            target_text = re.sub(r'\s([?.!"](?:\s|$))', r'\1', target_text)                        
+            target_text = re.sub(r'\s([?.!"](?:\s|$))', r'\1', target_text)
             target_text = re.sub("(:+\s?)+\)", ":)", target_text)
             target_text = re.sub("(;+\s?)+\)", ";)", target_text)
             target_text = re.sub("can ’ t", "can't", target_text)
@@ -89,30 +89,30 @@ class chatbot(object):
             target_text = re.sub("''", "", target_text)
             target_text = re.sub(" ``", "", target_text)
             target_text = re.sub("\( ", "(", target_text)
-            target_text = re.sub(" \)", ")", target_text)            
+            target_text = re.sub(" \)", ")", target_text)
             target_seq = np.zeros((1, 1, self.num_decoder_tokens))
             target_seq[0, 0, sample_token_idx] = 1
-        
+
         return target_text.strip('.')
-        
-    def test_run(self):        
+
+    def test_run(self):
         print(self.reply("where are you?"))
         print(self.reply("who are you?"))
-        print(self.reply("that's not funny")) 
+        print(self.reply("that's not funny"))
         print(self.reply("let's do something fun!"))
         print(self.reply("what's the meaning of life"))
         print(self.reply("I'm hungry can you order pizza"))
         print(self.reply("are you self-aware?"))
         print(self.reply("what do you think about singularity"))
         print(self.reply("why"))
-        print(self.reply("humans and robots should work together to make the world a better place. what do you think"))
-        
-        
+        print(self.reply(
+            "humans and robots should work together to make the world a better place. what do you think"))
 
 
 def main():
     model = chatbot()
     model.test_run()
+
 
 if __name__ == '__main__':
     main()

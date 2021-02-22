@@ -1,9 +1,13 @@
-# Designing dialogue systems: MLT at NeurIPS 2018
+# Seq2Seq Chatbot with TensorFlow.js
 
-Experimenting with end-to-end systems with human-like traits, such as humor or creativity: Suzana Ilic and Reiichiro Nakano worked together on a funny, sarcastic deep learning-based chatbot and deployed it in the browser. The chatbot is an end-to-end sequence-to-sequence model that was trained on a custom dataset for dialogue systems. The project was submitted to the “NeurIPS 2018 Workshop: Machine Learning for Creativity and Design” and was accepted as artwork to the workshop online gallery. http://www.aiartonline.com/community/suzana-ilic/
+A simple dumb chat bot that can be built upon. Because of the easy to use interface, I personally use this for training before deploying the model to bots connected to services.
 
-The demo is available at: https://machine-learning-tokyo.github.io/seq2seq_bot
+### How to run
 
-The Conference and Workshop on Neural Information Processing Systems is one of the major international machine learning and computational neuroscience conferences. 
-
-[<p align="center"><img src="https://github.com/Machine-Learning-Tokyo/seq2seq_bot/blob/master/sarcastobot.png" width="600"></p>](https://www.youtube.com/watch?v=NEkYrV_YZLk&t=5s)
+1. Find data to train on and upload data into files stored in the `data` folder.
+   **_Starting out, you will have the default sarcasm QA dataset._**
+2. Create a venv using python3 and install the requirements
+3. Run `train.py` in the venv.
+   **_(I personally use google collab with GPU enabled since I don't have a good GPU to accelerate training)_**
+4. `cd` into the `js` folder and install the dependencies.
+5. Start the program by running npm start

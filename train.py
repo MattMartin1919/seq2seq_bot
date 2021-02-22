@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import json
+import re
+import pandas as pd
+import numpy as np
+import math
+from keras import backend as K
+from keras.losses import categorical_crossentropy
 from keras.models import Model
 from keras.layers import LSTM, Dense, Input, Embedding
 from keras.preprocessing.sequence import pad_sequences
@@ -9,26 +16,25 @@ from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from collections import Counter
 import nltk
-import numpy as np
-import pandas as pd
-import re
-import json
+nltk.download('punkt')
 
 np.random.seed(42)
+
 
 def store_js(filename, data):
     with open(filename, 'w') as f:
         f.write('export default ' + json.dumps(data, indent=2))
 
+
 BATCH_SIZE = 32
-NUM_EPOCHS = 35
+NUM_EPOCHS = 32
 HIDDEN_UNITS = 256
 MAX_INPUT_SEQ_LENGTH = 17
 MAX_TARGET_SEQ_LENGTH = 24
 MAX_VOCAB_SIZE = 2000
 
-questions = 'data/Q1.csv'
-answers = 'data/Q2.csv'
+questionsFile = 'data/Q1.csv'
+answersFile = 'data/Q2.csv'
 WEIGHT_FILE_PATH = 'model/word-weights.h5'
 
 input_counter = Counter()
@@ -38,10 +44,10 @@ input_texts = []
 target_texts = []
 
 # loading data
-with open('data/Q1.csv', 'r', encoding='utf8') as f:
+with open(questionsFile, 'r', encoding='utf8') as f:
     questions = f.read().split('\n')
-    
-with open('data/Q2.csv', 'r', encoding='utf8') as f:
+
+with open(answersFile, 'r', encoding='utf8') as f:
     answers = f.read().split('\n')
 
 
@@ -73,14 +79,14 @@ for line in answers:
         target_texts.append(target_words)
 
     prev_words = next_words
-    
+
 input_word2idx = {}
 target_word2idx = {}
 for idx, word in enumerate(input_counter.most_common(MAX_VOCAB_SIZE)):
     input_word2idx[word[0]] = idx + 2
 for idx, word in enumerate(target_counter.most_common(MAX_VOCAB_SIZE)):
     target_word2idx[word[0]] = idx + 1
-    
+
 
 input_word2idx['<PAD>'] = 0
 input_word2idx['<UNK>'] = 1
@@ -117,7 +123,8 @@ for input_words, target_words in zip(input_texts, target_texts):
         encoder_input_wids.append(w2idx)
 
     encoder_input_data.append(encoder_input_wids)
-    encoder_max_seq_length = max(len(encoder_input_wids), encoder_max_seq_length)
+    encoder_max_seq_length = max(
+        len(encoder_input_wids), encoder_max_seq_length)
     decoder_max_seq_length = max(len(target_words), decoder_max_seq_length)
 
 context = dict()
@@ -130,15 +137,19 @@ print(context)
 np.save('model/word-context.npy', context)
 store_js('js/mappings/word-context.js', context)
 
+
 def generate_batch(input_data, output_text_data):
     num_batches = len(input_data) // BATCH_SIZE
     while True:
         for batchIdx in range(0, num_batches):
             start = batchIdx * BATCH_SIZE
             end = (batchIdx + 1) * BATCH_SIZE
-            encoder_input_data_batch = pad_sequences(input_data[start:end], encoder_max_seq_length)
-            decoder_target_data_batch = np.zeros(shape=(BATCH_SIZE, decoder_max_seq_length, num_decoder_tokens))
-            decoder_input_data_batch = np.zeros(shape=(BATCH_SIZE, decoder_max_seq_length, num_decoder_tokens))
+            encoder_input_data_batch = pad_sequences(
+                input_data[start:end], encoder_max_seq_length)
+            decoder_target_data_batch = np.zeros(
+                shape=(BATCH_SIZE, decoder_max_seq_length, num_decoder_tokens))
+            decoder_input_data_batch = np.zeros(
+                shape=(BATCH_SIZE, decoder_max_seq_length, num_decoder_tokens))
             for lineIdx, target_words in enumerate(output_text_data[start:end]):
                 for idx, w in enumerate(target_words):
                     w2idx = 0  # default [UNK]
@@ -154,40 +165,40 @@ encoder_inputs = Input(shape=(None,), name='encoder_inputs')
 encoder_embedding = Embedding(input_dim=num_encoder_tokens, output_dim=HIDDEN_UNITS,
                               input_length=encoder_max_seq_length, name='encoder_embedding')
 encoder_lstm = LSTM(units=HIDDEN_UNITS, return_state=True, name='encoder_lstm')
-encoder_outputs, encoder_state_h, encoder_state_c = encoder_lstm(encoder_embedding(encoder_inputs))
+encoder_outputs, encoder_state_h, encoder_state_c = encoder_lstm(
+    encoder_embedding(encoder_inputs))
 encoder_states = [encoder_state_h, encoder_state_c]
 
 decoder_inputs = Input(shape=(None, num_decoder_tokens), name='decoder_inputs')
-decoder_lstm = LSTM(units=HIDDEN_UNITS, return_state=True, return_sequences=True, name='decoder_lstm')
-decoder_outputs, decoder_state_h, decoder_state_c = decoder_lstm(decoder_inputs,
-                                                                 initial_state=encoder_states)
-decoder_dense = Dense(units=num_decoder_tokens, activation='softmax', name='decoder_dense')
+decoder_lstm = LSTM(units=HIDDEN_UNITS, return_state=True,
+                    return_sequences=True, name='decoder_lstm')
+decoder_outputs, decoder_state_h, decoder_state_c = decoder_lstm(
+    decoder_inputs, initial_state=encoder_states)
+decoder_dense = Dense(units=num_decoder_tokens,
+                      activation='softmax', name='decoder_dense')
 decoder_outputs = decoder_dense(decoder_outputs)
 
 model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
-#early stopping on val perplexity
-#from keras.callbacks import EarlyStopping
-#callback = EarlyStopping(monitor='val_ppx', patience=2)
-
 # perplexity
-from keras.losses import categorical_crossentropy
-from keras import backend as K
-import math
+
 
 def ppx(y_true, y_pred):
     loss = categorical_crossentropy(y_true, y_pred)
     perplexity = K.cast(K.pow(math.e, K.mean(loss, axis=-1)), K.floatx())
     return perplexity
 
+
 optimizer = Adam(lr=0.005)
-model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=[ppx])
+model.compile(loss='categorical_crossentropy',
+              optimizer=optimizer, metrics=[ppx])
 
 
 json = model.to_json()
 open('model/word-architecture.json', 'w').write(json)
 
-X_train, X_test, y_train, y_test = train_test_split(encoder_input_data, target_texts, test_size=0.05, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    encoder_input_data, target_texts, test_size=0.05, random_state=42)
 
 print(len(X_train))
 print(len(X_test))
@@ -199,17 +210,22 @@ train_num_batches = len(X_train) // BATCH_SIZE
 test_num_batches = len(X_test) // BATCH_SIZE
 
 checkpoint = ModelCheckpoint(filepath=WEIGHT_FILE_PATH, save_best_only=True)
-model.fit_generator(generator=train_gen, steps_per_epoch=train_num_batches,
-                    epochs=NUM_EPOCHS,
-                    verbose=1, validation_data=test_gen, validation_steps=test_num_batches, callbacks=[checkpoint])
+
+model.fit(train_gen,
+          # steps_per_epoch=train_num_batches,
+          epochs=NUM_EPOCHS,
+          verbose=1, validation_data=test_gen, validation_steps=test_num_batches, callbacks=[checkpoint])
 
 encoder_model = Model(encoder_inputs, encoder_states)
 encoder_model.save('model/encoder-weights.h5')
 
-new_decoder_inputs = Input(batch_shape=(1, None, num_decoder_tokens), name='new_decoder_inputs')
-new_decoder_lstm = LSTM(units=HIDDEN_UNITS, return_state=True, return_sequences=True, name='new_decoder_lstm', stateful=True)
+new_decoder_inputs = Input(batch_shape=(
+    1, None, num_decoder_tokens), name='new_decoder_inputs')
+new_decoder_lstm = LSTM(units=HIDDEN_UNITS, return_state=True,
+                        return_sequences=True, name='new_decoder_lstm', stateful=True)
 new_decoder_outputs, _, _ = new_decoder_lstm(new_decoder_inputs)
-new_decoder_dense = Dense(units=num_decoder_tokens, activation='softmax', name='new_decoder_dense')
+new_decoder_dense = Dense(units=num_decoder_tokens,
+                          activation='softmax', name='new_decoder_dense')
 new_decoder_outputs = new_decoder_dense(new_decoder_outputs)
 new_decoder_lstm.set_weights(decoder_lstm.get_weights())
 new_decoder_dense.set_weights(decoder_dense.get_weights())
@@ -217,6 +233,3 @@ new_decoder_dense.set_weights(decoder_dense.get_weights())
 new_decoder_model = Model(new_decoder_inputs, new_decoder_outputs)
 
 new_decoder_model.save('model/decoder-weights.h5')
-
-
-

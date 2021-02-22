@@ -1,0 +1,5 @@
+# Removing everything but the sarcasm bot training set
+*
+!.gitignore
+!Q1.csv
+!Q2.csv

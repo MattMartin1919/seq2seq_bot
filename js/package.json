@@ -3,11 +3,7 @@
   "version": "0.1.0",
   "license": "",
   "scripts": {
-    "start": "budo main.js:dist/bundle.js --live --host localhost",
-    "watch": "watchify main.js -v --debug -o dist/bundle.js",
-    "build": "npm run build-css && browserify main.js -o dist/bundle.js",
-    "build-css": "node-sass main.scss -o dist --output-style compressed --include-path node_modules",
-    "deploy": "npm run build && uglifyjs dist/bundle.js -c -m -o dist/bundle.min.js"
+    "start": "budo main.js:dist/bundle.js --live --host localhost"
   },
   "browserify": {
     "transform": [
